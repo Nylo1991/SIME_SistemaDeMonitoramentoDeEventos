@@ -1,0 +1,35 @@
+﻿<Window x:Class="EventoInterface.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Eventos" Height="450" Width="800">
+
+    <StackPanel>
+
+        <Button Content="Atualizar"
+                Command="{Binding CarregarEventosCommand}"
+                Margin="6"/>
+
+        <ListBox ItemsSource="{Binding Eventos}" Margin="6">
+
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Border BorderThickness="1" Margin="4" Padding="6">
+                        <StackPanel>
+
+                            <TextBlock Text="{Binding Tipo_Evento}"
+                                       FontWeight="Bold"/>
+
+                            <TextBlock Text="{Binding local_Evento}"/>
+
+                            <TextBlock Text="{Binding DataHora}"
+                                       FontSize="10"/>
+
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+
+        </ListBox>
+
+    </StackPanel>
+</Window>

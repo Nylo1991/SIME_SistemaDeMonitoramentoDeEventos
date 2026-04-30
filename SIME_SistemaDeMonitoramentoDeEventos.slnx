@@ -1,3 +1,6 @@
 <Solution>
+  <Project Path="ApiEventos/ApiEventos.csproj" />
+  <Project Path="EventoInterface/EventoInterface.csproj" />
+  <Project Path="EventoSimulador/EventoSimulador.csproj" />
   <Project Path="Shared/Shared.csproj" />
 </Solution>
