@@ -11,20 +11,5 @@ namespace ApiEventos.Data
             : base(options)
         {
         }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-
-            modelBuilder.Entity<Eventos>().ToTable("Eventos");
-
-            modelBuilder.Entity<Eventos>()
-                .Property(e => e.Tipo_Evento)
-                .IsRequired();
-
-            modelBuilder.Entity<Eventos>()
-                .Property(e => e.local_Evento)
-                .IsRequired();
-        }
     }
 }
