@@ -9,7 +9,7 @@ namespace EventoInterface
         {
             InitializeComponent();
 
-            DataContext = new MainViewModel(); // 🔥 ESSENCIAL
+            DataContext = new MainViewModel();
         }
     }
 }

@@ -1,50 +1,60 @@
 ﻿using EventoInterface.DTOs_Interface;
-using EventoInterface.Commands;
+using EventoInterface.ViewModels;
 using System.Collections.ObjectModel;
 using System.Net.Http;
 using System.Net.Http.Json;
+using System.Windows;
 using System.Windows.Input;
 
-namespace EventoInterface.ViewModels
+public class MainViewModel : BaseViewModel
 {
-    public class MainViewModel : BaseViewModel
+    public ObservableCollection<EventoDto> Eventos { get; set; } = new();
+
+    public ICommand CarregarEventosCommand { get; }
+
+    public string Status { get; set; } = "Carregando...";
+
+    public MainViewModel()
     {
-        public ObservableCollection<EventoDto> Eventos { get; set; }
+        CarregarEventosCommand = new RelayCommand(_ => CarregarEventos());
 
-        public ICommand CarregarEventosCommand { get; }
+        // CARREGA AUTOMÁTICO AO ABRIR
+        CarregarEventos();
+    }
 
-        public MainViewModel()
+    private async void CarregarEventos()
+    {
+        try
         {
-            Eventos = new ObservableCollection<EventoDto>();
+            Status = "Carregando...";
+            OnPropertyChanged(nameof(Status));
 
-            CarregarEventosCommand = new RelayCommand(async _ => await CarregarEventos());
+            var http = new HttpClient();
 
-            //CARREGA AUTOMATICAMENTE AO ABRIR
-            _ = CarregarEventos();
+            var dados = await http.GetFromJsonAsync<List<EventoDto>>(
+                "https://localhost:7294/api/v1/evento");
+
+            Eventos.Clear();
+
+            if (dados != null)
+            {
+                foreach (var item in dados)
+                    Eventos.Add(item);
+            }
+
+            Status = $"Total: {Eventos.Count} eventos";
+        }
+        catch (Exception ex)
+        {
+            Status = "Erro ao conectar com API";
+
+            MessageBox.Show(
+                $"Erro ao carregar eventos:\n{ex.Message}",
+                "Erro",
+                MessageBoxButton.OK,
+                MessageBoxImage.Error);
         }
 
-        private async Task CarregarEventos()
-        {
-            try
-            {
-                var http = new HttpClient();
-
-                var response = await http.GetFromJsonAsync<
-                    ApiResponseDto<List<EventoDto>>>(
-                    "https://localhost:7294/api/v1/evento");
-
-                Eventos.Clear();
-
-                if (response?.Dados != null)
-                {
-                    foreach (var evento in response.Dados)
-                        Eventos.Add(evento);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Erro: {ex.Message}");
-            }
-        }
+        OnPropertyChanged(nameof(Status));
     }
 }

@@ -3,23 +3,30 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="Eventos" Height="450" Width="800">
 
-    <StackPanel>
+    <StackPanel Margin="10">
 
+        <!-- BOTÃO -->
         <Button Content="Atualizar"
                 Command="{Binding CarregarEventosCommand}"
-                Margin="6"/>
+                Margin="5"/>
 
-        <ListBox ItemsSource="{Binding Eventos}" Margin="6">
+        <!-- STATUS -->
+        <TextBlock Text="{Binding Status}"
+                   Margin="5"
+                   FontWeight="Bold"/>
+
+        <!-- LISTA -->
+        <ListBox ItemsSource="{Binding Eventos}" Margin="5">
 
             <ListBox.ItemTemplate>
                 <DataTemplate>
                     <Border BorderThickness="1" Margin="4" Padding="6">
                         <StackPanel>
 
-                            <TextBlock Text="{Binding Tipo}"
+                            <TextBlock Text="{Binding Tipo_Evento}"
                                        FontWeight="Bold"/>
 
-                            <TextBlock Text="{Binding Mensagem}"/>
+                            <TextBlock Text="{Binding local_Evento}"/>
 
                             <TextBlock Text="{Binding DataHora}"
                                        FontSize="10"/>
