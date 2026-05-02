@@ -1,29 +1,49 @@
 using ApiEventos.Data;
+using ApiEventos.Mappings;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// STRING DE CONEXÃO VINDO DO appsettings.json
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
+// DB
+builder.Services.AddDbContext<AppDbContext>(opt =>
+    opt.UseSqlite("Data Source=eventos.db"));
 
-// SERVICES
+// AutoMapper
+builder.Services.AddAutoMapper(typeof(EventoProfile));
+
+// Controllers
 builder.Services.AddControllers();
+
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    options.IncludeXmlComments(xmlPath);
+});
 
 var app = builder.Build();
 
-// GARANTE QUE O BANCO SERÁ CRIADO AUTOMATICAMENTE
+// Criar banco automático
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate(); // ESSA LINHA RESOLVE 90% DOS ERROS
+    db.Database.EnsureCreated();
 }
 
-// PIPELINE
-app.UseSwagger();
-app.UseSwaggerUI();
+// Pipeline
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
+    {
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "API Eventos v1");
+    });
+}
+
+app.UseHttpsRedirection();
+app.UseAuthorization();
 
 app.MapControllers();
 
