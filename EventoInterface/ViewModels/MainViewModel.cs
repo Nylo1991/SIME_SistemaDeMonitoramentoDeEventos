@@ -1,4 +1,4 @@
-﻿using EventoInterface.Models;
+﻿using EventoInterface.DTOs_Interface;
 using EventoInterface.Commands;
 using System.Collections.ObjectModel;
 using System.Net.Http;
@@ -19,7 +19,7 @@ namespace EventoInterface.ViewModels
 
             CarregarEventosCommand = new RelayCommand(async _ => await CarregarEventos());
 
-            // 🔥 CARREGA AUTOMATICAMENTE AO ABRIR
+            //CARREGA AUTOMATICAMENTE AO ABRIR
             _ = CarregarEventos();
         }
 
