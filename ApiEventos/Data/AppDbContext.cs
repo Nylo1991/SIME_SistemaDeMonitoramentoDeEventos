@@ -11,5 +11,10 @@ namespace ApiEventos.Data
             : base(options)
         {
         }
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            modelBuilder.Entity<Eventos>().ToTable("Eventos");
+        }
     }
 }
