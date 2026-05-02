@@ -1,38 +1,55 @@
-﻿using System.Net.Http.Json;
+﻿using EventoSimulador.DTOs_Simulador;
+using System.Net.Http.Json;
 
 var https = new HttpClient();
+
+// Ignore SSL (apenas dev)
+https.BaseAddress = new Uri("https://localhost:7294");
+https.DefaultRequestHeaders.Accept.Clear();
+
 var random = new Random();
 
 string[] tipos = { "Alerta", "Falha", "Info" };
-string[] locais = { "Sala 1", "Sala 2", "Painel", "Motor" };
+string[] mensagens =
+{
+    "Temperatura alta",
+    "Motor desligado",
+    "Sistema normal",
+    "Pressão baixa",
+    "Falha elétrica"
+};
+
+Console.WriteLine("Simulador iniciado...\n");
 
 while (true)
 {
-    var evento = new
-    {
-        Tipo = tipos[random.Next(tipos.Length)],
-        Mensagem = $"Evento em {locais[random.Next(locais.Length)]}"
-    };
-
     try
     {
+        var evento = new EventoRequestDto
+        {
+            Tipo = tipos[random.Next(tipos.Length)],
+            //  SEM QUEBRA DE LINHA
+            Mensagem = mensagens[random.Next(mensagens.Length)]
+        };
+
         var response = await https.PostAsJsonAsync(
-            "https://localhost:5149/api/v1/evento",
+            "/api/v1/evento",
             evento);
 
         if (response.IsSuccessStatusCode)
         {
-            Console.WriteLine($"OK → {evento.Tipo} | {evento.Mensagem}");
+            Console.WriteLine($" Enviado: {evento.Tipo} - {evento.Mensagem}");
         }
         else
         {
             var erro = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"Erro: {erro}");
+            Console.WriteLine($" Erro: {response.StatusCode}");
+            Console.WriteLine(erro);
         }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Falha: {ex.Message}");
+        Console.WriteLine($" Exceção: {ex.Message}");
     }
 
     await Task.Delay(2000);
