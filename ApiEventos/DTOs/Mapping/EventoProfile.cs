@@ -1,8 +1,7 @@
-﻿using ApiEventos.DTOs;
+﻿using AutoMapper;
+using Shared;
 using ApiEventos.DTOs.Request;
 using ApiEventos.DTOs.Response;
-using AutoMapper;
-using Shared;
 
 namespace ApiEventos.Mappings
 {
@@ -10,10 +9,13 @@ namespace ApiEventos.Mappings
     {
         public EventoProfile()
         {
+            // ENTITY -> RESPONSE DTO
             CreateMap<Eventos, EventoDto>();
 
+            // REQUEST DTO -> ENTITY
             CreateMap<EventoRequestDto, Eventos>()
-                .ForMember(d => d.DataHora, o => o.MapFrom(_ => DateTime.Now));
+                .ForMember(dest => dest.DataHora,
+                           opt => opt.MapFrom(_ => DateTime.Now));
         }
     }
 }

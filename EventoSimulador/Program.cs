@@ -1,7 +1,6 @@
-﻿using Shared;
-using System.Net.Http.Json;
+﻿using System.Net.Http.Json;
 
-var http = new HttpClient();
+var https = new HttpClient();
 var random = new Random();
 
 string[] tipos = { "Alerta", "Falha", "Info" };
@@ -9,20 +8,32 @@ string[] locais = { "Sala 1", "Sala 2", "Painel", "Motor" };
 
 while (true)
 {
-    var evento = new Eventos
+    var evento = new
     {
-        Tipo_Evento = tipos[random.Next(tipos.Length)],
-        local_Evento = locais[random.Next(locais.Length)],
-        DataHora = DateTime.Now
+        Tipo = tipos[random.Next(tipos.Length)],
+        Mensagem = $"Evento em {locais[random.Next(locais.Length)]}"
     };
 
-    var response = await http.PostAsJsonAsync(
-        "https://localhost:5149/api/v1/evento",
-        evento);
+    try
+    {
+        var response = await https.PostAsJsonAsync(
+            "https://localhost:5149/api/v1/evento",
+            evento);
 
-    Console.WriteLine(response.IsSuccessStatusCode
-        ? "Evento enviado"
-        : "Erro ao enviar");
+        if (response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"OK → {evento.Tipo} | {evento.Mensagem}");
+        }
+        else
+        {
+            var erro = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"Erro: {erro}");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Falha: {ex.Message}");
+    }
 
     await Task.Delay(2000);
 }
