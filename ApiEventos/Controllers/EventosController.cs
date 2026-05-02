@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using ApiEventos.Config;
 using ApiEventos.Data;
-using Shared;
-using ApiEventos.Config;
+using ApiEventos.DTOs.Request;
+using ApiEventos.DTOs.Response;
+using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Shared;
 
 namespace ApiEventos.Controllers
 {
@@ -19,74 +22,75 @@ namespace ApiEventos.Controllers
     /// - Atualizar eventos existentes
     /// - Remover eventos
     /// 
-    /// Utiliza Entity Framework com banco SQLite
-    /// e padrão de resposta customizado.
+    /// Utiliza:
+    /// - Entity Framework Core (SQLite)
+    /// - DTOs para entrada e saída
+    /// - AutoMapper para conversão
+    /// - Padrão de resposta unificado
     /// </remarks>
     [ApiController]
     [Route("api/v1/evento")]
     public class EventoController : ControllerBase
     {
         /// <summary>
-        /// Contexto do banco de dados - responsável pela persistência dos eventos
+        /// Contexto do banco de dados
         /// </summary>
         private readonly AppDbContext _context;
 
         /// <summary>
-        /// Configurações da API vindas do appsettings.json
+        /// Mapper para conversão entre entidade e DTO
+        /// </summary>
+        private readonly IMapper _mapper;
+
+        /// <summary>
+        /// Configurações da API
         /// </summary>
         private readonly ApiConfig _config;
 
         /// <summary>
-        /// Construtor da classe - recebe as dependências via injeção
+        /// Construtor com injeção de dependência
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="config"></param>
-        public EventoController(AppDbContext context, IOptions<ApiConfig> config)
+        public EventoController(
+            AppDbContext context,
+            IMapper mapper,
+            IOptions<ApiConfig> config)
         {
             _context = context;
+            _mapper = mapper;
             _config = config.Value;
         }
 
         // =========================
-        // MODELO PADRÃO DE RESPOSTA
+        // PADRÃO DE RESPOSTA
         // =========================
 
         /// <summary>
-        /// Modelo de resposta para sucesso
+        /// Retorno padrão de sucesso
         /// </summary>
-        /// <param name="dados"></param>
-        /// <param name="mensagem"></param>
-        /// <returns></returns>
-        private object Sucesso(object? dados, string mensagem = "OK")
+        private ApiResponseDto<T> Sucesso<T>(T dados, string mensagem = "OK")
         {
-            return new
+            return new ApiResponseDto<T>
             {
-                status = 200,
-                sucesso = true,
-                mensagem,
-                dados,
-                data = DateTime.Now
+                Status = 200,
+                Sucesso = true,
+                Mensagem = mensagem,
+                Dados = dados,
+                Data = DateTime.Now
             };
         }
 
         /// <summary>
-        /// Modelo de resposta para erro
+        /// Retorno padrão de erro
         /// </summary>
-        /// <param name="status"></param>
-        /// <param name="erro"></param>
-        /// <param name="mensagem"></param>
-        /// <param name="detalhe"></param>
-        /// <returns></returns>
-        private object Erro(int status, string erro, string mensagem, string? detalhe = null)
+        private ApiResponseDto<string> Erro(int status, string mensagem, string detalhe = "")
         {
-            return new
+            return new ApiResponseDto<string>
             {
-                status,
-                sucesso = false,
-                erro,
-                mensagem,
-                detalhe,
-                data = DateTime.Now
+                Status = status,
+                Sucesso = false,
+                Mensagem = mensagem,
+                Dados = detalhe,
+                Data = DateTime.Now
             };
         }
 
@@ -95,26 +99,27 @@ namespace ApiEventos.Controllers
         // =========================
 
         /// <summary>
-        /// GET: api/v1/evento - Retorna todos os eventos
+        /// GET: api/v1/evento
         /// </summary>
         /// <remarks>
-        /// Retorna a lista de eventos ordenados do mais recente para o mais antigo.
+        /// Retorna todos os eventos ordenados do mais recente para o mais antigo.
         /// </remarks>
-        /// <returns></returns>
         [HttpGet]
         public async Task<IActionResult> Listar()
         {
             try
             {
                 var eventos = await _context.Eventos
-                                            .OrderByDescending(e => e.DataHora)
-                                            .ToListAsync();
+                    .OrderByDescending(e => e.DataHora)
+                    .ToListAsync();
 
-                return Ok(Sucesso(eventos, "Eventos listados com sucesso"));
+                var dto = _mapper.Map<List<EventoDto>>(eventos);
+
+                return Ok(Sucesso(dto, "Eventos listados com sucesso"));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, Erro(500, "ERRO_INTERNO", "Erro ao listar eventos", ex.Message));
+                return StatusCode(500, Erro(500, "Erro ao listar eventos", ex.Message));
             }
         }
 
@@ -123,13 +128,11 @@ namespace ApiEventos.Controllers
         // =========================
 
         /// <summary>
-        /// GET: api/v1/evento/{id} - Retorna um evento por ID
+        /// GET: api/v1/evento/{id}
         /// </summary>
-        /// <param name="id"></param>
         /// <remarks>
-        /// Busca um evento específico com base no ID informado.
+        /// Retorna um evento específico com base no ID informado.
         /// </remarks>
-        /// <returns></returns>
         [HttpGet("{id}")]
         public async Task<IActionResult> BuscarPorId(int id)
         {
@@ -138,13 +141,15 @@ namespace ApiEventos.Controllers
                 var evento = await _context.Eventos.FindAsync(id);
 
                 if (evento == null)
-                    return NotFound(Erro(404, "NAO_ENCONTRADO", "Evento não encontrado"));
+                    return NotFound(Erro(404, "Evento não encontrado"));
 
-                return Ok(Sucesso(evento, "Evento encontrado"));
+                var dto = _mapper.Map<EventoDto>(evento);
+
+                return Ok(Sucesso(dto, "Evento encontrado"));
             }
             catch (Exception ex)
             {
-                return StatusCode(500, Erro(500, "ERRO_INTERNO", "Erro ao buscar evento", ex.Message));
+                return StatusCode(500, Erro(500, "Erro ao buscar evento", ex.Message));
             }
         }
 
@@ -153,54 +158,52 @@ namespace ApiEventos.Controllers
         // =========================
 
         /// <summary>
-        /// POST: api/v1/evento - Cria um novo evento
+        /// POST: api/v1/evento
         /// </summary>
-        /// <param name="evento"></param>
         /// <remarks>
         /// Cria um novo evento validando:
         /// - Tipo obrigatório
         /// - Mensagem obrigatória
         /// - Tamanho máximo da mensagem
         /// </remarks>
-        /// <returns></returns>
         [HttpPost]
-        public async Task<IActionResult> Receber([FromBody] Eventos evento)
+        public async Task<IActionResult> Criar([FromBody] EventoRequestDto dto)
         {
             try
             {
-                if (evento == null)
-                    return BadRequest(Erro(400, "VALIDACAO", "Objeto inválido"));
+                if (dto == null)
+                    return BadRequest(Erro(400, "Objeto inválido"));
 
-                if (string.IsNullOrWhiteSpace(evento.Tipo))
-                    return BadRequest(Erro(400, "VALIDACAO", "Tipo obrigatório"));
+                if (string.IsNullOrWhiteSpace(dto.Tipo))
+                    return BadRequest(Erro(400, "Tipo obrigatório"));
 
-                if (string.IsNullOrWhiteSpace(evento.Mensagem))
-                    return BadRequest(Erro(400, "VALIDACAO", "Mensagem obrigatória"));
+                if (string.IsNullOrWhiteSpace(dto.Mensagem))
+                    return BadRequest(Erro(400, "Mensagem obrigatória"));
 
-                if (evento.Mensagem.Length > _config.MaxDescricaoLength)
-                    return BadRequest(Erro(400, "VALIDACAO",
+                if (dto.Mensagem.Length > _config.MaxDescricaoLength)
+                    return BadRequest(Erro(400,
                         $"Mensagem deve ter no máximo {_config.MaxDescricaoLength} caracteres"));
 
+                var evento = _mapper.Map<Eventos>(dto);
                 evento.DataHora = DateTime.Now;
 
                 _context.Eventos.Add(evento);
                 await _context.SaveChangesAsync();
 
+                var responseDto = _mapper.Map<EventoDto>(evento);
+
                 return CreatedAtAction(
                     nameof(BuscarPorId),
                     new { id = evento.Id },
-                    Sucesso(evento, "Evento criado com sucesso"));
+                    Sucesso(responseDto, "Evento criado com sucesso"));
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException ex)
             {
-                return StatusCode(500,
-                    Erro(500, "ERRO_BANCO", "Erro ao salvar no banco",
-                    dbEx.InnerException?.Message ?? dbEx.Message));
+                return StatusCode(500, Erro(500, "Erro ao salvar no banco", ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500,
-                    Erro(500, "ERRO_INTERNO", "Erro inesperado", ex.Message));
+                return StatusCode(500, Erro(500, "Erro interno", ex.Message));
             }
         }
 
@@ -209,57 +212,49 @@ namespace ApiEventos.Controllers
         // =========================
 
         /// <summary>
-        /// PUT: api/v1/evento/{id} - Atualiza um evento existente
+        /// PUT: api/v1/evento/{id}
         /// </summary>
-        /// <param name="id"></param>
-        /// <param name="evento"></param>
         /// <remarks>
-        /// Atualiza os dados de um evento existente:
-        /// - Valida ID
-        /// - Verifica existência
-        /// - Atualiza Tipo, Mensagem e Data
+        /// Atualiza um evento existente validando:
+        /// - ID
+        /// - Existência no banco
         /// </remarks>
-        /// <returns></returns>
         [HttpPut("{id}")]
-        public async Task<IActionResult> Atualizar(int id, [FromBody] Eventos evento)
+        public async Task<IActionResult> Atualizar(int id, [FromBody] EventoRequestDto dto)
         {
             try
             {
+                if (dto == null)
+                    return BadRequest(Erro(400, "Objeto inválido"));
+
+                var evento = await _context.Eventos.FindAsync(id);
+
                 if (evento == null)
-                    return BadRequest(Erro(400, "VALIDACAO", "Objeto inválido"));
+                    return NotFound(Erro(404, "Evento não encontrado"));
 
-                if (id != evento.Id)
-                    return BadRequest(Erro(400, "VALIDACAO", "ID inválido"));
+                if (string.IsNullOrWhiteSpace(dto.Tipo))
+                    return BadRequest(Erro(400, "Tipo obrigatório"));
 
-                var existente = await _context.Eventos.FindAsync(id);
+                if (string.IsNullOrWhiteSpace(dto.Mensagem))
+                    return BadRequest(Erro(400, "Mensagem obrigatória"));
 
-                if (existente == null)
-                    return NotFound(Erro(404, "NAO_ENCONTRADO", "Evento não encontrado"));
-
-                if (string.IsNullOrWhiteSpace(evento.Tipo))
-                    return BadRequest(Erro(400, "VALIDACAO", "Tipo obrigatório"));
-
-                if (string.IsNullOrWhiteSpace(evento.Mensagem))
-                    return BadRequest(Erro(400, "VALIDACAO", "Mensagem obrigatória"));
-
-                existente.Tipo = evento.Tipo;
-                existente.Mensagem = evento.Mensagem;
-                existente.DataHora = DateTime.Now;
+                evento.Tipo = dto.Tipo;
+                evento.Mensagem = dto.Mensagem;
+                evento.DataHora = DateTime.Now;
 
                 await _context.SaveChangesAsync();
 
-                return Ok(Sucesso(existente, "Evento atualizado com sucesso"));
+                var responseDto = _mapper.Map<EventoDto>(evento);
+
+                return Ok(Sucesso(responseDto, "Evento atualizado com sucesso"));
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException ex)
             {
-                return StatusCode(500,
-                    Erro(500, "ERRO_BANCO", "Erro ao atualizar no banco",
-                    dbEx.InnerException?.Message ?? dbEx.Message));
+                return StatusCode(500, Erro(500, "Erro ao atualizar banco", ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500,
-                    Erro(500, "ERRO_INTERNO", "Erro inesperado", ex.Message));
+                return StatusCode(500, Erro(500, "Erro interno", ex.Message));
             }
         }
 
@@ -268,13 +263,11 @@ namespace ApiEventos.Controllers
         // =========================
 
         /// <summary>
-        /// DELETE: api/v1/evento/{id} - Remove um evento
+        /// DELETE: api/v1/evento/{id}
         /// </summary>
-        /// <param name="id"></param>
         /// <remarks>
-        /// Remove um evento do banco de dados com base no ID informado.
+        /// Remove um evento do sistema com base no ID informado.
         /// </remarks>
-        /// <returns></returns>
         [HttpDelete("{id}")]
         public async Task<IActionResult> Deletar(int id)
         {
@@ -283,23 +276,20 @@ namespace ApiEventos.Controllers
                 var evento = await _context.Eventos.FindAsync(id);
 
                 if (evento == null)
-                    return NotFound(Erro(404, "NAO_ENCONTRADO", "Evento não encontrado"));
+                    return NotFound(Erro(404, "Evento não encontrado"));
 
                 _context.Eventos.Remove(evento);
                 await _context.SaveChangesAsync();
 
-                return Ok(Sucesso(null, "Evento removido com sucesso"));
+                return Ok(Sucesso<string>(null, "Evento removido com sucesso"));
             }
-            catch (DbUpdateException dbEx)
+            catch (DbUpdateException ex)
             {
-                return StatusCode(500,
-                    Erro(500, "ERRO_BANCO", "Erro ao deletar no banco",
-                    dbEx.InnerException?.Message ?? dbEx.Message));
+                return StatusCode(500, Erro(500, "Erro ao deletar no banco", ex.Message));
             }
             catch (Exception ex)
             {
-                return StatusCode(500,
-                    Erro(500, "ERRO_INTERNO", "Erro inesperado", ex.Message));
+                return StatusCode(500, Erro(500, "Erro interno", ex.Message));
             }
         }
     }

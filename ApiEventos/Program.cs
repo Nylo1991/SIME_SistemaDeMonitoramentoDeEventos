@@ -12,38 +12,29 @@ builder.Services.Configure<ApiConfig>(
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite("Data Source=eventos.db"));
 
+// AUTOMAPPER
+builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 // CONTROLLERS
 builder.Services.AddControllers();
+
+// SWAGGER
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll",
-        policy => policy
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
-});
-
 var app = builder.Build();
 
-//CRIAÇÃO DO BANCO
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 }
 
+// MIDDLEWARE
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.UseCors("AllowAll");
-
 app.UseHttpsRedirection();
-app.UseAuthorization();
-
 app.MapControllers();
 
 app.Run();
