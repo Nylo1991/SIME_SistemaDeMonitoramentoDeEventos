@@ -16,10 +16,10 @@
                     <Border BorderThickness="1" Margin="4" Padding="6">
                         <StackPanel>
 
-                            <TextBlock Text="{Binding Tipo_Evento}"
+                            <TextBlock Text="{Binding Tipo}"
                                        FontWeight="Bold"/>
 
-                            <TextBlock Text="{Binding local_Evento}"/>
+                            <TextBlock Text="{Binding Mensagem}"/>
 
                             <TextBlock Text="{Binding DataHora}"
                                        FontSize="10"/>

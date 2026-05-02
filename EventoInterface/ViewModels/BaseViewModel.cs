@@ -7,9 +7,9 @@ namespace EventoInterface.ViewModels
     {
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        protected void OnPropertyChanged([CallerMemberName] string? nome = null)
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
         {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nome));
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
     }
 }

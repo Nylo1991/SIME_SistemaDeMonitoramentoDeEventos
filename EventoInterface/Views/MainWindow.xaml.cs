@@ -8,7 +8,8 @@ namespace EventoInterface
         public MainWindow()
         {
             InitializeComponent();
-            DataContext = new MainViewModel();
+
+            DataContext = new MainViewModel(); // 🔥 ESSENCIAL
         }
     }
 }
