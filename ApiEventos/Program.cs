@@ -25,7 +25,7 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Criar banco automático
+// CRIA BANCO AUTOMATICO
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -33,17 +33,8 @@ using (var scope = app.Services.CreateScope())
 }
 
 // Pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI(options =>
-    {
-        options.SwaggerEndpoint("/swagger/v1/swagger.json", "API Eventos v1");
-    });
-}
-
-app.UseHttpsRedirection();
-app.UseAuthorization();
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.MapControllers();
 
